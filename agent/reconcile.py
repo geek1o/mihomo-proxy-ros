@@ -8,7 +8,7 @@ import json
 import time
 import uuid
 from .client import AgentError
-from .model import OWNER, ORDERED, SCHEMA
+from .model import owner_prefix, ORDERED, SCHEMA
 
 
 def clean(path, row):
@@ -16,7 +16,7 @@ def clean(path, row):
 
 
 def owned(row):
-    return str(row.get('comment','')).startswith(OWNER) and row.get('dynamic') != 'true'
+    return str(row.get('comment','')).startswith(owner_prefix()) and row.get('dynamic') != 'true'
 
 
 def same(actual, expected):

@@ -190,7 +190,11 @@ def effective_env_from(overrides,key):
 
 def main():
     store=state_store()
-    password=os.environ.get('MP_UI_PASSWORD')
+    import secrets
+    instance=store.read('instance.json') or secrets.token_hex(5)
+    store.write('instance.json',instance); os.environ['MP_INSTANCE_ID']=instance
+    password_file=os.environ.get('MP_UI_PASSWORD_FILE')
+    password=Path(password_file).read_text().strip() if password_file else os.environ.get('MP_UI_PASSWORD')
     if password:
         result=subprocess.run(['openssl','passwd','-6','-stdin'],input=password+'\n',text=True,capture_output=True,check=True)
         os.environ['BASIC_AUTH_HASH']=result.stdout.strip()

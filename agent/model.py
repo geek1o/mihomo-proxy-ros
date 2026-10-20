@@ -1,6 +1,7 @@
 """Typed desired state. Object names are isolated from legacy/user-owned objects."""
 import hashlib
 import ipaddress
+import os
 import re
 from .client import AgentError
 
@@ -55,8 +56,14 @@ def validate_env(env):
     return env
 
 
+def owner_prefix():
+    instance=os.environ.get('MP_INSTANCE_ID','geek1o')
+    if not re.fullmatch(r'[a-z0-9]{1,20}',instance): raise AgentError('Invalid installation ID')
+    return OWNER.replace('instance=geek1o;','instance='+instance+';')
+
+
 def tag(key):
-    return OWNER + hashlib.sha256(key.encode()).hexdigest()[:24]
+    return owner_prefix() + hashlib.sha256(key.encode()).hexdigest()[:24]
 
 
 def entity(path, key, **fields):
@@ -122,7 +129,7 @@ def desired_state(env, network):
     if profile == 'disabled':
         return []
     container_ip = ipv4(network.get('container_ip', ''))
-    name = 'mpr-geek1o'
+    name = 'mpr-'+os.environ.get('MP_INSTANCE_ID','geek1o')
     domains, ips = router_items(env)
     objects = [entity('ip/dns/forwarders', 'dns', name=name, **{'dns-servers': container_ip})]
     for d, exact in sorted(domains.items()):

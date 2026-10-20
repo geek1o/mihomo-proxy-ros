@@ -9,5 +9,7 @@ service=app['services']['proxy']
 assert service['image'].startswith('ghcr.io/geek1o/mihomo-proxy-ros:fork-')
 assert not ({'privileged','cap_add','network_mode'} & set(service))
 assert 'state:/data' in service['volumes']
-assert service['environment']['MP_UI_PASSWORD']=='[secret:ui_password]'
+assert service['environment']['MP_UI_PASSWORD_FILE']=='/run/secrets/ui_password'
+assert service['secrets']==['ui_password']
+assert 'MP_UI_PASSWORD' not in service['environment']
 print('Apps manifest and catalog agree')
