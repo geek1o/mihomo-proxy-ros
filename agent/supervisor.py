@@ -100,11 +100,13 @@ class Supervisor:
             client=RestClient(conn); client.preflight()
             reconciler=Reconciler(client,store)
             if job['action']=='recover':
+                target=store.read('transaction.json',{}).get('connection')
+                if target and target!=digest(conn): raise AgentError('Recovery belongs to a different RouterOS connection')
                 job['status']='recovering'; store.write('job.json',job)
                 result=reconciler.rollback()
                 if result['status']!='rolled-back': raise AgentError('RouterOS recovery incomplete; retry after restoring API access')
                 saved=store.read('local-recovery.json')
-                if saved:
+                if saved and saved.get('id')==result['id']:
                     store.write('env.json',saved['env']); store.write('network.json',saved['network'])
                     self.stop_worker(); self.start_worker()
                     if not self.ready(): raise AgentError('RouterOS restored, but proxy worker did not recover')
@@ -113,9 +115,15 @@ class Supervisor:
                 preview=job['preview']; changes=preview['changes']
                 job['status']='validating'; store.write('job.json',job)
                 validate_candidate(store,changes)
-                store.write('local-recovery.json',{'env':preview['previous_env'],'network':preview['previous_network']})
                 job['status']='applying'; store.write('job.json',job)
                 result=reconciler.apply(preview)
+                if result['id'] is None and (changes or preview.get('restart_files')):
+                    import uuid
+                    tx={'id':str(uuid.uuid4()),'status':'applied','actions':[],'connection':digest(conn),'time':time.time()}
+                    store.write('transaction.json',tx)
+                    result={'id':tx['id'],'status':'applied'}
+                if result['id']:
+                    store.write('local-recovery.json',{'id':result['id'],'env':preview['previous_env'],'network':preview['previous_network']})
                 old=store.read('env.json',{})
                 new={**old,**changes}
                 store.write('env.json',new); store.write('network.json',preview['network'])

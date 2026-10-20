@@ -12,7 +12,7 @@ from .model import OWNER, ORDERED, SCHEMA
 
 
 def clean(path, row):
-    return {k: str(v) for k, v in row.items() if k in SCHEMA[path]}
+    return {k: ('true' if k in {'fib','blackhole'} and v=='' else str(v)) for k, v in row.items() if k in SCHEMA[path]}
 
 
 def owned(row):
@@ -22,7 +22,15 @@ def owned(row):
 def same(actual, expected):
     def norm(v):
         return {'yes':'true','no':'false'}.get(str(v), str(v))
-    return all(norm(actual.get(k,'')) == norm(v) for k,v in expected.items())
+    def value(row,key):
+        if key in {'fib','blackhole'} and key in row and row[key]=='': return 'true'
+        raw=row.get(key,'false' if key in {'disabled','match-subdomain','blackhole','fib'} else '')
+        if key in {'address','src-address','dst-address'} and raw:
+            import ipaddress
+            try: return str(ipaddress.ip_network(raw,strict=False))
+            except ValueError: pass
+        return norm(raw)
+    return all(value(actual,k) == value(expected,k) for k in expected)
 
 
 def digest(value):
@@ -118,7 +126,7 @@ class Reconciler:
         if previous.get('status') in ('applying','rollback-incomplete','interrupted'):
             raise AgentError('An interrupted transaction requires recovery first')
         tx = {'id':str(uuid.uuid4()),'status':'applying','time':time.time(),
-              'actions':[], 'before':preview['actual']}
+              'actions':[], 'before':preview['actual'],'connection':preview.get('connection')}
         self.store.write('transaction.json',tx)
         try:
             for action in preview['actions']:
@@ -156,16 +164,17 @@ class Reconciler:
             tx['after'] = snapshot(self.client,SCHEMA)
             self.store.write('transaction.json',tx)
             return {'id':tx['id'],'status':'applied'}
-        except Exception:
+        except Exception as error:
             # Do not log API bodies or exceptions that could contain secret values.
             tx['status'] = 'failed'
+            tx['error'] = str(error) if isinstance(error,AgentError) else 'Unexpected controller failure'
             self.store.write('transaction.json',tx)
             result = self.rollback(tx)
-            raise AgentError('Apply failed; '+result['status']+'; see operation journal') from None
+            raise AgentError('Apply failed: '+tx['error']+'; '+result['status']+'; see operation journal') from None
 
     def rollback(self, tx=None):
         tx = tx or self.store.read('transaction.json',{})
-        if not tx.get('actions'): raise AgentError('No transaction to restore')
+        if not tx.get('id'): raise AgentError('No transaction to restore')
         failures = 0
         for action in reversed(tx['actions']):
             if action.get('state') == 'restored': continue

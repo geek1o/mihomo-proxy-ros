@@ -73,7 +73,8 @@ class RestClient:
                     raise AgentError('RouterOS response exceeds limit')
                 return json.loads(raw) if raw else None
         except urllib.error.HTTPError as e:
-            raise AgentError('RouterOS HTTP ' + str(e.code)) from None
+            code=e.code; e.close()
+            raise AgentError('RouterOS HTTP ' + str(code)) from None
         except (OSError, ValueError, urllib.error.URLError):
             raise AgentError('RouterOS unavailable, invalid response or TLS verification failed') from None
 
