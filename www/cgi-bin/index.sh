@@ -634,6 +634,8 @@ header() {
   <link rel="icon" href="$(asset_url favicon.png)">
   <link rel="stylesheet" href="$(asset_url style.css)">
   <script src="$(asset_url ui.js)" defer></script>
+  <script src="$(asset_url routeros.js)" defer></script>
+  <link rel="stylesheet" href="$(asset_url routeros.css)">
   <script src="$(asset_url assets/happ.js)" defer></script>
   <title>Mihomo Proxy ROS</title>
 </head>

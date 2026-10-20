@@ -1,4 +1,7 @@
 #!/bin/sh
+if [ -n "${MP_STATE_DIR:-}" ] && [ "${MP_ENV_WRAPPED:-0}" != "1" ]; then
+  exec python3 -m agent.cgi_env "$0" "$@"
+fi
 
 ORIGINAL_ENV_FILE="${ORIGINAL_ENV_FILE:-/dev/shm/mihomo-original-envs}"
 

@@ -1,0 +1,35 @@
+#!/usr/bin/python3
+"""Protected by the existing BusyBox Basic Auth; never serves credentials."""
+import json
+import os
+import sys
+sys.path.insert(0,'/opt/mpr')
+from agent.client import AgentError
+from agent.control import command, csrf, guard_request, public_status, state_store
+
+status = '200 OK'
+try:
+    store = state_store()
+    with store.lock():
+        if not os.environ.get('REMOTE_USER'):
+            raise AgentError('WebUI authentication is required')
+        if os.environ.get('REQUEST_METHOD') == 'GET':
+            result = public_status(store)
+        else:
+            length = int(os.environ.get('CONTENT_LENGTH','0'))
+            if not 0 < length <= 262144:
+                raise AgentError('Invalid request size')
+            body = json.loads(sys.stdin.buffer.read(length))
+            if not isinstance(body,dict): raise AgentError('Expected JSON object')
+            guard_request(os.environ,body,csrf(store))
+            result = command(store,body)
+except AgentError as e:
+    status = '400 Bad Request'; result = {'ok':False,'error':str(e)}
+except Exception:
+    status = '500 Internal Server Error'; result = {'ok':False,'error':'Controller error; no diagnostic secrets are returned'}
+print('Status: '+status)
+print('Content-Type: application/json; charset=utf-8')
+print('Cache-Control: no-store')
+print('X-Content-Type-Options: nosniff')
+print()
+print(json.dumps(result,ensure_ascii=False))

@@ -1,0 +1,9 @@
+.ros-panel {margin:1.2rem 0;padding:1rem;border:1px solid #64748b;border-radius:10px;}
+.ros-panel summary {cursor:pointer;font-weight:600;}
+.ros-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin:1rem 0;}
+.ros-panel label {display:flex;flex-direction:column;gap:.4rem;}
+.ros-panel input,.ros-panel textarea,.ros-panel select {max-width:100%;width:100%;box-sizing:border-box;}
+.ros-panel input[type=checkbox] {width:auto;align-self:flex-start;}
+.ros-actions {display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0;}
+#ros-output {max-height:420px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-size:.85rem;}
+@media(max-width:500px){.ros-grid{grid-template-columns:1fr;}.ros-actions button{width:100%;}}

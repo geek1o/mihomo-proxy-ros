@@ -1,0 +1,32 @@
+- name: mihomo-proxy-ros-geek1o
+  descr: Independent proxy fork with RouterOS HTTPS reconciliation
+  page: https://github.com/geek1o/mihomo-proxy-ros
+  category: networking
+  supported-archs: [arm64, x86]
+  auto-update: false
+  default-credentials: "admin:[secret:ui_password]"
+  secrets:
+    ui_password:
+  services:
+    proxy:
+      image: ghcr.io/geek1o/mihomo-proxy-ros:fork-rc1
+      environment:
+        MP_UI_PASSWORD: "[secret:ui_password]"
+        MP_CONTAINER_IP: "[containerIP]"
+        MP_ROUTER_IP: "[routerIP]"
+        TPROXY: "true"
+        WEB_MASK_SECRETS: "true"
+      ports:
+        - "8088:80:web"
+      volumes:
+        - state:/data
+        - mihomo:/root/.config/mihomo
+        - fakebin:/zapret-fakebin
+        - lists:/zapret-lists
+      restart: unless-stopped
+      stop_grace_period: 30s
+  volumes:
+    state:
+    mihomo:
+    fakebin:
+    lists:

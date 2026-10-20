@@ -2,6 +2,7 @@
 
 log() { echo "[$(date +'%H:%M:%S')] $*"; }
 
+if [ "${MP_GENERATE_ONLY:-0}" != "1" ]; then
 sysctl -w net.ipv4.ip_forward=0
 sysctl -w net.ipv6.conf.all.disable_ipv6=1
 sysctl -w net.ipv6.conf.default.disable_ipv6=1
@@ -68,6 +69,8 @@ else
   fi
 fi
 
+fi
+
 set -eu
 
 ORIGINAL_ENV_FILE="${ORIGINAL_ENV_FILE:-/dev/shm/mihomo-original-envs}"
@@ -79,7 +82,7 @@ TPROXY="${TPROXY:-true}"
 LOG_LEVEL="${LOG_LEVEL:-error}"
 EXTERNAL_UI_URL="${EXTERNAL_UI_URL:-https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip}"
 UI_SECRET="${UI_SECRET:-}"
-CONFIG_DIR="/root/.config/mihomo"
+CONFIG_DIR="${CONFIG_DIR:-/root/.config/mihomo}"
 AWG_DIR="$CONFIG_DIR/awg"
 TRUSTTUNNEL_DIR="$CONFIG_DIR/trusttunnel"
 OPENVPN_DIR="$CONFIG_DIR/openvpn"
@@ -90,8 +93,8 @@ RULE_SET_DIR="$CONFIG_DIR/rule_set_list"
 # to avoid wearing out the underlying flash storage. Mounted user files
 # (AWG_DIR, TRUSTTUNNEL_DIR, OPENVPN_DIR, PROXIES_DIR, RULE_SET_DIR) and mihomo's own downloads
 # (geosite, geoip, external-ui) stay in CONFIG_DIR on flash.
-RUNTIME_DIR="/dev/shm/mihomo"
-HS5T_DIR="/dev/shm/hs5t"
+RUNTIME_DIR="${RUNTIME_DIR:-/dev/shm/mihomo}"
+HS5T_DIR="${HS5T_DIR:-/dev/shm/hs5t}"
 CONFIG_YAML="$RUNTIME_DIR/config.yaml"
 UI_URL_CHECK="$CONFIG_DIR/.ui_url"
 FAKE_IP_RANGE="${FAKE_IP_RANGE:-198.18.0.0/15}"
@@ -4890,7 +4893,7 @@ run() {
   rm -rf "$WEBROOT/cgi-bin"
   cp -r /www/cgi-bin "$WEBROOT/cgi-bin"
   chmod +x "$WEBROOT/cgi-bin/"* 2>/dev/null || true
-  for item in assets templates favicon.png style.css ui.js; do
+  for item in assets templates favicon.png style.css ui.js routeros.js routeros.css; do
     [ -e "/www/$item" ] && ln -sfn "/www/$item" "$WEBROOT/$item"
   done
   WWW_DIR="$WEBROOT" /bin/sh /www/render_static.sh >/dev/null 2>&1 &
@@ -4901,5 +4904,12 @@ run() {
 
   wait $MIHOMO_PID
 }
+
+if [ "${MP_GENERATE_ONLY:-0}" = "1" ]; then
+  mkdir -p "$RUNTIME_DIR" "$HS5T_DIR"
+  config_file_mihomo
+  SAFE_PATHS="$RUNTIME_DIR" mihomo -t -d "$CONFIG_DIR" -f "$CONFIG_YAML"
+  exit $?
+fi
 
 run || exit 1

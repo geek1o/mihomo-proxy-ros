@@ -1,0 +1,21 @@
+# syntax=docker/dockerfile:1.7
+# Preserve the complete published proxy payload, including optional Happ/Amnezia
+# assets that the original source build requires as private build secrets.
+# Source: Medium1992/mihomo-proxy-ros, GPL-3.0. Digests verified 2026-10-20.
+FROM ghcr.io/medium1992/mihomo-proxy-ros:amd64v1-v1.19.32@sha256:dcf662d25e2e2f205b1a7ab973d64d5eda7ab515589315477412f33d9881c69c AS proxy-amd64
+FROM ghcr.io/medium1992/mihomo-proxy-ros:v1.19.32@sha256:7e51cc50a5dd439101aaf812e30e5f7a7eeb86c2dedf5e2bed7bdd5ef4de82e8 AS proxy-arm64
+ARG TARGETARCH
+FROM proxy-${TARGETARCH} AS runtime
+ARG VCS_REF=unknown
+LABEL org.opencontainers.image.source="https://github.com/geek1o/mihomo-proxy-ros" \
+      org.opencontainers.image.title="mihomo-proxy-ros geek1o independent fork" \
+      org.opencontainers.image.licenses="GPL-3.0-only" \
+      org.opencontainers.image.revision=$VCS_REF
+RUN apk add --no-cache python3 curl openssl ca-certificates && mkdir -p /opt/mpr /data
+COPY agent /opt/mpr/agent
+COPY entrypoint.sh /entrypoint.sh
+# Copy individually: keep the base image's private optional www/assets/happ.js.
+COPY www/ /www/
+RUN chmod +x /entrypoint.sh /www/cgi-bin/*
+ENV PYTHONPATH=/opt/mpr MP_STATE_DIR=/data/agent PYTHONDONTWRITEBYTECODE=1
+ENTRYPOINT ["python3", "-m", "agent.supervisor"]
