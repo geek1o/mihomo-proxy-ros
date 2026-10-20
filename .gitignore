@@ -4,3 +4,7 @@ www/assets/happ.js
 www/*.html
 www/*.html.raw
 www/*.html.tmp
+__pycache__/
+*.pyc
+.venv/
+.coverage

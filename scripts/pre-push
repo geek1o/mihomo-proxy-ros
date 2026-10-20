@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+expected=https://github.com/geek1o/mihomo-proxy-ros.git
+[ "$1" = origin ] && [ "$2" = "$expected" ] || { echo 'Push blocked: destination is not the verified fork' >&2; exit 1; }
+[ "$(git config --get remote.upstream.pushurl)" = DISABLED-UPSTREAM-PUSH ] || exit 1
